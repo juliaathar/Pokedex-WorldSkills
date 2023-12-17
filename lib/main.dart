@@ -32,7 +32,7 @@ class HomePage extends StatelessWidget {
                 width: 300,
                 height: 300,
                 semanticLabel:
-                    'Logo do aplicativo. Está escrito "Pokémon" em cor amarela com uma borda azul'),
+                'Logo do aplicativo. Está escrito "Pokémon" em cor amarela com uma borda azul'),
             SizedBox(
               height: 100,
             ),
@@ -50,14 +50,14 @@ class HomePage extends StatelessWidget {
               },
               style: ButtonStyle(
                 backgroundColor:
-                    MaterialStateProperty.all(Color.fromRGBO(247, 247, 247, 1)),
+                MaterialStateProperty.all(Color.fromRGBO(247, 247, 247, 1)),
               ),
             ),
             SizedBox(height: 40),
             ElevatedButton(
               style: ButtonStyle(
                 backgroundColor:
-                    MaterialStateProperty.all(Color.fromRGBO(247, 247, 247, 1)),
+                MaterialStateProperty.all(Color.fromRGBO(247, 247, 247, 1)),
               ),
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 40.0),
@@ -66,7 +66,10 @@ class HomePage extends StatelessWidget {
                   style: TextStyle(color: Color.fromRGBO(156, 5, 0, 1)),
                 ),
               ),
-              onPressed: () {},
+              onPressed: () {
+                Navigator.push(context,
+                    MaterialPageRoute(builder: (context) => PokeList()));
+              },
             ),
           ],
         ),
@@ -93,6 +96,11 @@ class PokeSearch extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            Image.asset('assets/img/logo.png',
+                width: 300,
+                height: 300,
+                semanticLabel:
+                'Logo do aplicativo. Está escrito "Pokémon" em cor amarela com uma borda azul'),
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: TextField(
@@ -126,7 +134,7 @@ class PokeSearch extends StatelessWidget {
                 if (pokemonName.isNotEmpty) {
                   try {
                     Map<String, dynamic> pokemonData =
-                        await fetchPokemon(pokemonName);
+                    await fetchPokemon(pokemonName);
                     String imageUrl = pokemonData['sprites']['front_default'];
                     showPokemonDialog(context, pokemonData, imageUrl);
                   } catch (e) {
@@ -144,9 +152,90 @@ class PokeSearch extends StatelessWidget {
   }
 }
 
+class PokeList extends StatefulWidget {
+  @override
+  _PokeListState createState() => _PokeListState();
+}
+
+class _PokeListState extends State<PokeList> {
+  List<String> pokemonList = [];
+  bool isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    fetchAllPokemon();
+  }
+
+  Future<void> fetchAllPokemon() async {
+    try {
+      final response =
+      await http.get(Uri.parse('https://pokeapi.co/api/v2/pokemon/'));
+
+      if (response.statusCode == 200) {
+        final List<dynamic> pokemonDataList =
+        json.decode(response.body)['results'];
+        setState(() {
+          pokemonList =
+              pokemonDataList.map((pokemon) => pokemon['name'].toString()).toList();
+          isLoading = false;
+        });
+      } else {
+        showErrorDialog(context, 'Falha ao carregar a lista de Pokémon.');
+      }
+    } catch (e) {
+      showErrorDialog(
+          context, 'Erro inesperado ao carregar a lista de Pokémon.');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.red,
+        title: Text(
+          'Nossos pokémons',
+          style: TextStyle(color: Color.fromRGBO(247, 247, 247, 1)),
+        ),
+      ),
+      body: isLoading
+          ? Center(child: CircularProgressIndicator())
+          : ListView.builder(
+        itemCount: pokemonList.length,
+        itemBuilder: (context, index) {
+          return Card(
+            elevation: 3,
+            margin: EdgeInsets.all(8),
+            child: ListTile(
+              title: Text(pokemonList[index]),
+              onTap: () async {
+                String pokemonName = pokemonList[index].toLowerCase();
+
+                try {
+                  Map<String, dynamic> pokemonData =
+                  await fetchPokemon(pokemonName);
+                  String imageUrl =
+                  pokemonData['sprites']['front_default'];
+                  showPokemonDialog(context, pokemonData, imageUrl);
+                } catch (e) {
+                  showErrorDialog(
+                      context, 'Falha ao carregar dados do Pokémon.');
+                }
+              },
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+// Métodos pra buscar pokémons na API
+
 Future<Map<String, dynamic>> fetchPokemon(String pokemonName) async {
-  final response = await http
-      .get(Uri.parse('https://pokeapi.co/api/v2/pokemon/$pokemonName'));
+  final response =
+  await http.get(Uri.parse('https://pokeapi.co/api/v2/pokemon/$pokemonName'));
 
   if (response.statusCode == 200) {
     return json.decode(response.body);
@@ -164,9 +253,9 @@ void showPokemonDialog(
         title: Text('Detalhes do ${pokemonData['name']}'),
         content: Column(
           children: [
-            SizedBox(height:60),
+            SizedBox(height: 60),
             Image.network(imageUrl, width: 120, height: 120),
-            SizedBox(height:60),
+            SizedBox(height: 60),
             Text('Nome: ${pokemonData['name']}'),
             Text('Tipo: ${pokemonData['types'][0]['type']['name']}'),
             Text(
